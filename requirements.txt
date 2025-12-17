@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+python-dotenv
+redis
+requests
+haversine
+pydantic
+supabase
+python-multipart
+google-genai
+Pillow
+folium
