@@ -1,0 +1,116 @@
+-- 1. ADMINS
+CREATE TABLE admins (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    email VARCHAR NOT NULL UNIQUE,
+    password_hash TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. EMPLOYEES
+CREATE TABLE employees (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    employee_code VARCHAR NOT NULL UNIQUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    home_lat FLOAT,
+    home_lng FLOAT,
+    home_radius_m FLOAT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2+. EMPLOYEE FACES
+CREATE TABLE employee_faces (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL UNIQUE,
+    embedding FLOAT[] NOT NULL,
+    reference_image_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. CHECK-IN OTPs
+CREATE TABLE checkin_otps (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id),
+    otp_code VARCHAR NOT NULL,
+    valid_for_date DATE NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. USER SESSIONS
+CREATE TABLE user_sessions (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id),
+    check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    check_in_selfie_url TEXT,
+    odometer_start_image_url TEXT,
+    odometer_start_value FLOAT,
+    check_out_time TIMESTAMP,
+    odometer_end_image_url TEXT,
+    odometer_end_value FLOAT,
+    start_lat FLOAT,
+    start_lng FLOAT,
+    end_lat FLOAT,
+    end_lng FLOAT
+);
+
+-- 5. USER LOCATIONS
+CREATE TABLE user_locations (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id),
+    session_id INTEGER NOT NULL REFERENCES user_sessions(id),
+    lat FLOAT NOT NULL,
+    lng FLOAT NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT (now() AT TIME ZONE 'utc')
+);
+
+-- 6. GEOFENCES
+CREATE TABLE geofences (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    center_lat FLOAT NOT NULL,
+    center_lng FLOAT NOT NULL,
+    radius_m FLOAT NOT NULL,
+    created_by INTEGER REFERENCES admins(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_geofence_center UNIQUE (center_lat, center_lng)
+);
+
+-- 7. GEOFENCE STATUS
+CREATE TABLE geofence_status (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id),
+    session_id INTEGER NOT NULL REFERENCES user_sessions(id),
+    geofence_id INTEGER NOT NULL REFERENCES geofences(id),
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP,
+    CONSTRAINT uq_geofence_status_session UNIQUE (session_id, geofence_id)
+);
+
+-- 8. GEOFENCE ASSIGNMENTS
+CREATE TABLE geofence_assignments (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id),
+    geofence_id INTEGER NOT NULL REFERENCES geofences(id),
+    assigned_date DATE NOT NULL,
+    assigned_by INTEGER REFERENCES admins(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. DAILY SUMMARY
+CREATE TABLE daily_summary (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id),
+    date DATE NOT NULL,
+    odometer_start FLOAT,
+    odometer_end FLOAT,
+    total_distance FLOAT,
+    geofence_count INTEGER,
+    start_lat FLOAT,
+    start_lng FLOAT,
+    end_lat FLOAT,
+    end_lng FLOAT,
+    CONSTRAINT uq_daily_summary_employee_date UNIQUE (employee_id, date)
+);
