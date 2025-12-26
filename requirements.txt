@@ -12,3 +12,6 @@ python-multipart
 google-genai
 Pillow
 folium
+h3
+shapely
+geojson
